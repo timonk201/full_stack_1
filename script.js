@@ -1,18 +1,22 @@
-const themeBtn = document.querySelector("#themeBtn");
-const greetBtn = document.querySelector("#greetBtn");
+async function loadProducts() {
+  const response = await fetch('http://localhost:3001/products');
+  const products = await response.json();
+  renderProducts(products);
+}
 
-themeBtn.addEventListener("click", function () {
-    document.body.classList.toggle("dark");
+function renderProducts(products) {
+  const catalog = document.querySelector('.catalog');
+  products.forEach((product) => {
+    const card = document.createElement('article');
+    card.className = 'card';
+    card.innerHTML = `
+      <img src="${product.image}" alt="${product.name}">
+      <h3>${product.name}</h3>
+      <p>${product.price} тг</p>
+      <button>В корзину</button>
+    `;
+    catalog.appendChild(card);
+  });
+}
 
-    if (document.body.classList.contains("dark")) {
-        themeBtn.textContent = "Светлая тема";
-    } else {
-        themeBtn.textContent = "Тёмная тема";
-    }
-});
-
-greetBtn.addEventListener("click", function () {
-    const greeting = document.querySelector("#greetBtn");
-
-    greeting.textContent = "Привет! Рад вас видеть!";
-});
+loadProducts();
