@@ -4,6 +4,8 @@ import Footer from './components/Footer';
 import ProductCard from './components/ProductCard';
 import ContactForm from './components/ContactForm';
 
+const API_URL = 'http://localhost:3000/api';
+
 function App() {
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -12,7 +14,7 @@ function App() {
   useEffect(() => {
     async function loadProducts() {
       try {
-        const response = await fetch('http://localhost:3001/products');
+        const response = await fetch(`${API_URL}/products`);
         const data = await response.json();
         setProducts(data);
       } catch (error) {

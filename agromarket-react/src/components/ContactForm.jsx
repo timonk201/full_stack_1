@@ -1,8 +1,41 @@
+import { useState } from 'react';
+
 function ContactForm() {
-  function handleSubmit(e) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  async function handleSubmit(e) {
     e.preventDefault();
-    alert('Заявка отправлена! Мы свяжемся с вами.');
-    e.target.reset();
+    const form = e.currentTarget;
+    const payload = Object.fromEntries(new FormData(form).entries());
+    payload.volume = Number(payload.volume);
+    payload.deliveryDate = payload['delivery-date'];
+    delete payload['delivery-date'];
+
+    setIsSubmitting(true);
+    setSubmitError('');
+    setIsSubmitted(false);
+
+    try {
+      const response = await fetch('http://localhost:3000/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Не удалось отправить заявку');
+      }
+
+      form.reset();
+      setIsSubmitted(true);
+    } catch (error) {
+      setSubmitError(error.message || 'Не удалось связаться с сервером');
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -46,7 +79,11 @@ function ContactForm() {
         <label htmlFor="comment">Комментарий</label>
         <textarea id="comment" name="comment" rows="4" />
 
-        <button type="submit">Отправить заявку</button>
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Отправка...' : 'Отправить заявку'}
+        </button>
+        {submitError && <p role="alert">{submitError}</p>}
+        {isSubmitted && <p role="status">Заявка отправлена! Мы свяжемся с вами.</p>}
       </form>
     </section>
   );
