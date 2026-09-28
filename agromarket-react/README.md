@@ -1,16 +1,26 @@
-# React + Vite
+## Лабораторная 4 — вёрстка
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+### Box model карточки (часть 1)
 
-Currently, two official plugins are available:
+- content: около 200px, padding: 16px, border: 1px, margin: 0
+- с box-sizing: border-box итоговая ширина карточки становится предсказуемой и не выходит за заданный контейнер
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### repeat(4, 1fr) на узком экране (часть 4)
 
-## React Compiler
+При сужении окна до ~500px сетка начинает уменьшать количество колонок и карточки встают в несколько рядов, что демонстрирует адаптивность Grid без отдельной media query.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### auto-fit vs auto-fill (часть 4)
 
-## Expanding the Oxlint configuration
+auto-fit подгоняет колонки под доступное пространство и убирает пустые слоты, а auto-fill сохраняет фиксированную сетку и оставляет пустые колонки при небольшом числе товаров.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+### Адаптивность (часть 5)
+
+| Ширина | Колонок в каталоге | Где «Доставка» | Шапка |
+|--------|-------------------|---------------|-------|
+| 375    | 1                 | под каталогом | столбик |
+| 768    | 2-3               | под каталогом | ряд |
+| 1280   | 4                 | справа        | ряд |
+
+### Скриншоты
+
+Скриншоты страницы были сделаны в режиме устройства для 375 и 1280 px и сохранены в папке screenshots/.

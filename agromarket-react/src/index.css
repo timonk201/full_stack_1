@@ -54,6 +54,11 @@ footer {
     padding: 20px;
 }
 
+img {
+  max-width: 100%;   /* картинка никогда не вылезет за контейнер */
+  display: block;
+}
+
 /* Тёмная тема */
 
 body.dark {
