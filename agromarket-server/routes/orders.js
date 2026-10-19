@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = Router();
+const adminOnly = [requireAuth, requireRole('admin')];
 
 export function parseOrder(payload) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
@@ -65,7 +67,7 @@ export function parseOrder(payload) {
   };
 }
 
-router.get('/', async (req, res) => {
+router.get('/', adminOnly, async (req, res) => {
   const { rows } = await pool.query(`
     SELECT o.*, p.name AS product_name
     FROM orders o
@@ -91,7 +93,7 @@ router.post('/', async (req, res) => {
   res.status(201).json(rows[0]);
 });
 
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', adminOnly, async (req, res) => {
   const { status } = req.body ?? {};
   if (status === undefined || status === null || status === '') {
     return res.status(400).json({ error: 'Поле status обязательно' });

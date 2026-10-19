@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = Router();
+const adminOnly = [requireAuth, requireRole('admin')]
 
 export function validateProduct(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -47,7 +49,7 @@ router.get('/:id', async (req, res) => {
   res.json(rows[0]);
 });
 
-router.post('/', async (req, res) => {
+router.post('/', adminOnly, async (req, res) => { 
   const body = req.body ?? {};
   const error = validateProduct(body);
   if (error) {
@@ -64,7 +66,7 @@ router.post('/', async (req, res) => {
   res.status(201).json(rows[0]);
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', adminOnly, async (req, res) => { 
   const body = req.body ?? {};
   const error = validateProduct(body);
   if (error) {
@@ -86,7 +88,7 @@ router.put('/:id', async (req, res) => {
   res.json(rows[0]);
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', adminOnly, async (req, res) => { 
   const { rowCount } = await pool.query(
     'DELETE FROM products WHERE id = $1',
     [req.params.id],

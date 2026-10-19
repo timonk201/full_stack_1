@@ -16,6 +16,14 @@ body {
   color: #1f2a1f;
 }
 
+:root {
+  --market-green: #2e7d32;
+  --market-green-dark: #1f5c27;
+  --market-green-soft: #eef9ee;
+  --market-border: #dfe6dc;
+  --market-input-border: #b9c4b5;
+}
+
 img {
   max-width: 100%;
   display: block;
@@ -73,6 +81,106 @@ ul {
 
 .cart {
   font-weight: 600;
+}
+
+/* ===== Авторизация ===== */
+.auth-bar {
+  border-bottom: 1px solid var(--market-border);
+  background: var(--market-green-soft);
+  padding: 12px 16px;
+}
+
+.auth-content {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.auth-user {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.auth-user button,
+.login-form button,
+.admin-form button {
+  min-height: 40px;
+  padding: 9px 14px;
+  border: 1px solid var(--market-green);
+  border-radius: 6px;
+  background: var(--market-green);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.auth-user button:hover,
+.login-form button[type='submit']:hover,
+.admin-form button:hover {
+  border-color: var(--market-green-dark);
+  background: var(--market-green-dark);
+}
+
+.login-form {
+  display: grid;
+  grid-template-columns: auto repeat(2, minmax(140px, 1fr)) auto auto;
+  align-items: center;
+  gap: 8px;
+  max-width: 1040px;
+  margin-left: auto;
+}
+
+.login-form h3 {
+  margin: 0 8px 0 0;
+  color: var(--market-green-dark);
+  font-size: 1rem;
+}
+
+.login-form input,
+.admin-form input {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 11px;
+  border: 1px solid var(--market-input-border);
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2a1f;
+  font: inherit;
+}
+
+.login-form input:focus-visible,
+.admin-form input:focus-visible {
+  outline: 2px solid var(--market-green);
+  outline-offset: 1px;
+}
+
+.login-form button[type='button'] {
+  border-color: transparent;
+  background: transparent;
+  color: var(--market-green-dark);
+  white-space: nowrap;
+}
+
+.login-form button[type='button']:hover {
+  background: #dcefdc;
+}
+
+.login-form button:disabled,
+.admin-form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.login-form .error,
+.admin-form .error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #a32323;
 }
 
 /* ===== Панель каталога ===== */
@@ -172,7 +280,15 @@ ul {
 }
 
 .catalog {
+  min-width: 0;
+}
+
+.catalog-stack {
   grid-area: catalog;
+  display: grid;
+  align-content: start;
+  gap: 24px;
+  min-width: 0;
 }
 
 .sidebar {
@@ -233,10 +349,80 @@ ul {
   cursor: pointer;
 }
 
+/* ===== Форма товара администратора ===== */
+.admin-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--market-border);
+  border-top: 3px solid var(--market-green);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.admin-form h3 {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--market-green-dark);
+  font-size: 1.05rem;
+}
+
 .site-footer {
   background: #1f2a1f;
   color: #fff;
   padding: 20px 16px;
+}
+
+@media (max-width: 900px) {
+  .login-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: none;
+  }
+
+  .login-form h3,
+  .login-form .error {
+    grid-column: 1 / -1;
+  }
+
+  .login-form button {
+    width: 100%;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 640px) {
+  .auth-bar {
+    padding: 12px;
+  }
+
+  .login-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .login-form h3,
+  .login-form .error {
+    grid-column: auto;
+  }
+
+  .auth-user {
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .admin-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-form h3,
+  .admin-form .error {
+    grid-column: 1 / -1;
+  }
+
+  .admin-form button {
+    grid-column: 1 / -1;
+  }
 }
 
 .footer-content {

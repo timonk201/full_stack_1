@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pool } from './pool.js';
+import bcrypt from 'bcryptjs';
 
 const currentDirectory = dirname(fileURLToPath(import.meta.url));
 const serverDirectory = resolve(currentDirectory, '..');
@@ -60,7 +61,16 @@ try {
       client.release();
     }
 
-    console.log(`Готово: таблицы созданы, товаров добавлено — ${validProducts.length}`);
+    const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
+    await pool.query(
+      `INSERT INTO users (name, email, password_hash, role)
+      VALUES ($1, $2, $3, 'admin')`,
+      ['Администратор', process.env.ADMIN_EMAIL, hash]
+    );
+
+    console.log(
+      `Готово: товаров — ${products.length}, админ — ${process.env.ADMIN_EMAIL}`
+    );
   }
 } finally {
   await pool.end();

@@ -1,7 +1,106 @@
 import assert from 'node:assert/strict';
+import express from 'express';
 import test from 'node:test';
+import { errorHandler } from '../middleware/errorHandler.js';
+import { requireRole } from '../middleware/auth.js';
+import authRouter from '../routes/auth.js';
 import { parseOrder, ordersRouter } from '../routes/orders.js';
 import { productsRouter, validateProduct } from '../routes/products.js';
+
+test('role middleware rejects other roles and forwards matching roles', () => {
+  let statusCode;
+  let responseBody;
+  let nextCalled = false;
+  const res = {
+    status(code) {
+      statusCode = code;
+      return this;
+    },
+    json(body) {
+      responseBody = body;
+      return this;
+    },
+  };
+
+  requireRole('admin')({ user: { role: 'user' } }, res, () => {});
+  assert.equal(statusCode, 403);
+  assert.deepEqual(responseBody, { error: 'Недостаточно прав' });
+
+  requireRole('admin')({ user: { role: 'admin' } }, res, () => {
+    nextCalled = true;
+  });
+  assert.equal(nextCalled, true);
+});
+
+test('duplicate database entries return 409', () => {
+  let statusCode;
+  let responseBody;
+  const res = {
+    headersSent: false,
+    status(code) {
+      statusCode = code;
+      return this;
+    },
+    json(body) {
+      responseBody = body;
+      return this;
+    },
+  };
+
+  errorHandler({ code: '23505' }, {}, res, () => {});
+  assert.equal(statusCode, 409);
+  assert.deepEqual(responseBody, { error: 'Такая запись уже существует' });
+});
+
+test('oversized JSON bodies return 413', () => {
+  let statusCode;
+  let responseBody;
+  const res = {
+    headersSent: false,
+    status(code) {
+      statusCode = code;
+      return this;
+    },
+    json(body) {
+      responseBody = body;
+      return this;
+    },
+  };
+
+  errorHandler({ type: 'entity.too.large' }, {}, res, () => {});
+  assert.equal(statusCode, 413);
+  assert.deepEqual(responseBody, { error: 'Слишком большой запрос' });
+});
+
+test('login route applies a rate limiter before its handler', () => {
+  const loginRoute = authRouter.stack.find((layer) => layer.route?.path === '/login');
+  assert.equal(loginRoute.route.stack.length, 2);
+});
+
+test('login rate limiter blocks the sixth failed attempt', async () => {
+  const app = express();
+  app.use(express.json());
+  app.use('/api/auth', authRouter);
+  const server = app.listen(0);
+
+  try {
+    const { port } = server.address();
+    const statuses = [];
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const response = await fetch(`http://127.0.0.1:${port}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      statuses.push(response.status);
+      await response.arrayBuffer();
+    }
+
+    assert.deepEqual(statuses, [400, 400, 400, 400, 400, 429]);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
 
 test('products router exposes the complete CRUD routes', () => {
   const routes = productsRouter.stack.map((layer) => ({
@@ -41,6 +140,7 @@ test('orders router exposes persistent read, create, and status update routes', 
     { path: '/', methods: ['post'] },
     { path: '/:id', methods: ['patch'] },
   ]);
+  assert.deepEqual(ordersRouter.stack.map((layer) => layer.route.stack.length), [3, 1, 3]);
 });
 
 test('order parser accepts the documented API fields', () => {

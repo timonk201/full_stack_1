@@ -6,6 +6,14 @@ const PG_CLIENT_ERRORS = {
 };
 
 export function errorHandler(error, req, res, next) {
+  if (error.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Слишком большой запрос' });
+  }
+
+  if (error.code === '23505') {
+    return res.status(409).json({ error: 'Такая запись уже существует' });
+  }
+  
   if (res.headersSent) {
     return next(error);
   }
