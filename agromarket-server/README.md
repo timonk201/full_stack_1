@@ -1,6 +1,10 @@
 # АгроМаркет API
 
+![CI](https://github.com/timonk201/agromarket-server/actions/workflows/ci.yml/badge.svg)
+
 REST API на Express с PostgreSQL для каталога товаров и оптовых заявок.
+
+Репозиторий содержит backend в `agromarket-server/` и frontend в `agromarket-react/`. Команды backend выполняйте из `agromarket-server`, команды frontend — из `agromarket-react`.
 
 ## Запуск
 
@@ -63,11 +67,37 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ## Тесты
 
+Создайте отдельную базу `agromarket_test`, затем скопируйте `.env.example` в `.env.test`, укажите тестовую базу и пароль PostgreSQL. Файл `.env.test` игнорируется Git.
+
+Установите инструменты тестирования:
+
 ```sh
-npm test
+npm install -D vitest supertest @vitest/coverage-v8
 ```
 
-Unit-тесты проверяют маршруты, валидацию и совместимость полей формы React. End-to-end-проверки API и базы находятся в Postman-коллекции.
+```sh
+npm test
+npm run test:watch
+npm run coverage
+```
+
+`npm test` запускает интеграционные и модульные тесты, а затем существующие проверки на `node:test`. Отчёт покрытия создаётся в `coverage/`. В текущем запуске `npm run coverage` покрытие Lines составило **59,5% (97 из 163 строк)**.
+
+## Правила работы с Git
+
+- Работайте в feature-ветках и открывайте Pull Request в `main`, даже если вы единственный разработчик.
+- Перед слиянием самостоятельно проверьте diff, тесты, сборку frontend и результат CI.
+- Включите защиту `main` от force push и требуйте успешный CI. Не ставьте обязательное одобрение, если некому сделать review: автор не может одобрить собственный PR. Если одобрение обязательно по требованиям курса, попросите преподавателя назначить проверяющего.
+- Имена веток: `feature/...`, `fix/...`; типы коммитов: `feat`, `fix`, `test`, `refactor`, `docs`, `ci`, `chore`.
+
+## Лабораторная 8 — ответы
+
+- Если убрать `adminOnly` у `POST /api/products`, проверки без токена и с ролью `user` перестанут получать 401 и 403: маршрут пропустит запрос к созданию товара.
+- Покрытие Lines: **59,5% (97 из 163 строк)** по результатам `npm run coverage`. В `routes/orders.js` обработчик `POST /api/orders` не вызывается добавленными интеграционными тестами: они проверяют только доступ к `GET /api/orders`; unit-проверки парсера запускаются отдельным `node:test` и не входят в Vitest coverage.
+- `middleware/logger.js` имеет 0% не из-за ошибки тестов: `app.js` намеренно не подключает логгер при `NODE_ENV=test`.
+- Unit-тест `requireRole` вызывает middleware напрямую с mock-объектами и не требует БД. Интеграционный тест в `access.test.js` проходит через HTTP, middleware, маршрут и PostgreSQL.
+- Работа выполняется самостоятельно: вместо ревью напарника проверьте diff по чек-листу PR; комментарии и approval напарника неприменимы. Если курс требует внешнее одобрение, попросите преподавателя проверить PR.
+- При выполнении лабораторной использовался GitHub Copilot для подготовки тестов, конфигурации и документации.
 
 ## Ответы и пояснения к лабораторной
 
