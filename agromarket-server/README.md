@@ -117,25 +117,31 @@ npm run coverage
 
 ## Продакшен
 
-После создания сервисов замените адреса-заглушки ниже на фактические URL:
+Рабочие production-адреса:
 
-- Сайт: `https://<имя-проекта>.vercel.app`
-- API: `https://<имя-сервиса>.onrender.com/api/health`
-- Схема: React (Vercel) → Express (Render) → PostgreSQL (Neon)
+- Сайт: <https://full-stack-1-smoky.vercel.app>
+- Проверка API и базы данных: <https://agromarket-api-mrachniyvoran.onrender.com/api/health>
+- Каталог: <https://agromarket-api-mrachniyvoran.onrender.com/api/products>
+- Схема: React (Vercel) → Express (Render) → PostgreSQL (Neon).
 
 Для монорепозитория укажите `agromarket-server` как Root Directory Render-сервиса, а `agromarket-react` — как Root Directory Vercel-проекта.
+
+В Vercel задайте Build Command `npm run build`, Output Directory `dist` и переменную `VITE_API_URL=https://agromarket-api-mrachniyvoran.onrender.com/api`. Это публичный адрес API, не секрет; после его изменения нужен новый Production Deploy. В Render укажите Health Check Path `/api/health`. Регион Render и Neon сверьте с настройками созданных ресурсов перед сдачей.
 
 ### Переменные окружения
 
 | Переменная | Где задаётся | Секрет |
 |---|---|---|
-| `DATABASE_URL` | Render | Да |
+| `DATABASE_URL` | Render; URL базы Neon | Да |
 | `JWT_SECRET` | Render | Да |
-| `CORS_ORIGIN` | Render | Нет |
-| `VITE_API_URL` | Vercel | Нет |
+| `JWT_EXPIRES_IN` | Render | Нет |
+| `ADMIN_EMAIL` | Render | Нет |
+| `ADMIN_PASSWORD` | Render | Да |
+| `CORS_ORIGIN` | Render; точный origin Vercel без завершающего `/` | Нет |
+| `VITE_API_URL` | Vercel; URL API вместе с `/api` | Нет |
 | `RENDER_DEPLOY_HOOK_URL` | GitHub Actions Secrets | Да |
-| `API_URL` | GitHub Actions Variables | Нет |
-| `FRONTEND_URL` | GitHub Actions Variables | Нет |
+| `API_URL` | GitHub Actions Variables; URL API вместе с `/api` | Нет |
+| `FRONTEND_URL` | GitHub Actions Variables; origin сайта | Нет |
 
 Render: Build Command — `npm ci --omit=dev`; Start Command — `npm run db:migrate && npm start`; Health Check Path — `/api/health`. Отключите Auto-Deploy, чтобы деплоем управлял GitHub Actions.
 
@@ -144,6 +150,26 @@ Render: Build Command — `npm ci --omit=dev`; Start Command — `npm run db:mig
 1. Pull Request запускает backend-тесты и frontend lint/build.
 2. Push в `main` после успешных проверок запускает Render Deploy Hook для проверенного SHA.
 3. Smoke-тест ждёт появления этого SHA в `/api/health`, затем проверяет БД, каталог, запрет создания товара без токена, CORS и ответ `404`.
-4. Vercel собирает frontend из `main`; при аварии выполните rollback на Render и оформите исправление через `git revert` в Pull Request.
+4. Vercel собирает frontend из `main`; при аварии верните рабочую версию через Render rollback, а затем оформите исправление в коде отдельным Pull Request (при необходимости — `git revert`).
 
 После создания облачных сервисов добавьте в GitHub Secret `RENDER_DEPLOY_HOOK_URL` и Variables `API_URL` (URL API вместе с `/api`) и `FRONTEND_URL` (origin сайта без завершающего слэша). Задайте на Render `CORS_ORIGIN` списком разрешённых origin через запятую.
+
+## Лабораторная 9 — ответы
+
+- **Что показывает предохранитель `db:init` на облачной базе?** Он останавливает потенциально разрушающую инициализацию: `Отказ: db:init запущен НЕ на локальной базе — все данные будут удалены.` Для намеренного запуска требуется явно указать `node db/seed.js --force`; на production-базе эту команду выполнять не следует.
+- **Почему сначала не загружался каталог и что исправлено?** В опубликованном frontend bundle оставался старый адрес API `agromarket-api-timonk201.onrender.com`. Настроен `VITE_API_URL` с актуальным адресом `agromarket-api-mrachniyvoran.onrender.com/api`, после чего frontend был пересобран и задеплоен. Последующая проверка подтвердила правильный URL в bundle; API каталога и CORS для production-origin отвечают успешно.
+- **Почему deploy пропускается на Pull Request, а Preview может не получить данные?** В workflow production deploy разрешён только для `push` в `main`, поэтому PR запускает проверки, но не деплоит Render. Preview Vercel имеет отдельный origin; если его не включить в `CORS_ORIGIN` на Render, браузер заблокирует API-запрос. Добавлять Preview-origin следует только на время проверки и затем удалить.
+- **Сколько занял успешный workflow?** Последний успешный запуск (от начала GitHub Actions run до завершения production smoke-теста) занял около **50 секунд**. Это длительность данного запуска, а не гарантированное время каждого деплоя.
+- **Что произошло бы при неудачном деплое с `JWT_SECRET=123`?** Такой сценарий отдельно не выполнялся. Сервер проверяет секрет при старте и должен завершиться с ошибкой; Render не должен перевести неисправный deployment в рабочий, а предыдущая healthy-версия обычно продолжает обслуживать запросы. Для отчёта о фактическом результате этот эксперимент нужно провести только безопасным способом и не менять production-секрет без плана восстановления.
+- **Чем rollback отличается от `git revert`?** Rollback в Render переключает сервис на предыдущую рабочую сборку, чтобы быстро восстановить работу. `git revert` создаёт новый коммит, отменяющий изменения в истории Git; после PR и CI он позволяет задеплоить исправленное состояние. Rollback сам по себе не отменяет коммит в репозитории.
+
+### Production-аудит и наблюдения
+
+- **Секреты в репозитории:** локальный `.env.neon` не отслеживается Git; точечная проверка `main` по строкам `neon.tech` и `npg_` совпадений не выявила. Перед сдачей также проверьте вкладку GitHub Actions Secrets и не публикуйте значения секретов.
+- **Обработка ошибок:** production API возвращает общее сообщение для неожиданных ошибок; подробности остаются в серверных логах.
+- **HTTP-заголовки:** приложение использует Helmet; в production-ответе API проверены защитные заголовки, включая HSTS и `X-Content-Type-Options`.
+- **HTTPS, пароль администратора и ограничение входа:** HTTPS-доступность проверена по production URL. Фактический вход с production-паролем и ответ `429` после превышения лимита попыток отдельно не проверялись; подтвердите их перед демонстрацией. Лимит входа настроен на 5 неудачных попыток за 15 минут с IP.
+- **Холодный старт Render:** точное время первого ответа не замерялось. Измерьте его после периода простоя и впишите результат: `первый запрос — ____ с; следующий запрос — ____ с`.
+- **Мобильная демонстрация:** регистрацию, создание заявки и вход в админку с телефона необходимо проверить перед сдачей; результаты проверки здесь не выдумываются.
+- **Бонус с фильтрами категорий:** в текущей версии эндпоинт `/api/categories` и кнопки фильтрации не реализованы.
+- **Использование ИИ:** при выполнении лабораторной использовался GitHub Copilot для подготовки и проверки кода, тестов и документации.
