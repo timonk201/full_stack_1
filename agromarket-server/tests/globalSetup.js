@@ -7,4 +7,5 @@ export default function setup() {
   }
 
   execSync('npm run db:init', { stdio: 'inherit' });
+  execSync('npm run db:migrate', { stdio: 'inherit' });
 }

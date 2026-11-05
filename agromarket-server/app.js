@@ -9,9 +9,16 @@ import { ordersRouter } from './routes/orders.js';
 import authRouter from './routes/auth.js';
 
 const app = express();
+const VERSION = (process.env.RENDER_GIT_COMMIT || 'local').slice(0, 7);
 
+app.set('trust proxy', 1);
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173' }));
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '10kb' }));
 
 if (process.env.NODE_ENV !== 'test') {
@@ -23,8 +30,13 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/health', async (req, res) => {
-  await pool.query('SELECT 1');
-  res.json({ status: 'ok', db: 'connected', time: new Date().toISOString() });
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok', db: 'ok', version: VERSION });
+  } catch (error) {
+    console.error('Health check: PostgreSQL недоступен —', error.message);
+    res.status(503).json({ status: 'error', db: 'unavailable', version: VERSION });
+  }
 });
 
 app.use('/api/auth', authRouter);

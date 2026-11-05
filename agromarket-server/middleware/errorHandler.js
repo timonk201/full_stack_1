@@ -6,6 +6,18 @@ const PG_CLIENT_ERRORS = {
 };
 
 export function errorHandler(error, req, res, next) {
+  if (res.headersSent) {
+    return next(error);
+  }
+
+  console.error(`[${req.method} ${req.originalUrl}]`, error);
+
+  const requestedStatus = error.status || error.statusCode;
+  const status = Number.isInteger(requestedStatus) && requestedStatus >= 400 && requestedStatus <= 599
+    ? requestedStatus
+    : 500;
+  const isProd = process.env.NODE_ENV === 'production';
+
   if (error.type === 'entity.too.large') {
     return res.status(413).json({ error: 'Слишком большой запрос' });
   }
@@ -14,22 +26,17 @@ export function errorHandler(error, req, res, next) {
     return res.status(409).json({ error: 'Такая запись уже существует' });
   }
   
-  if (res.headersSent) {
-    return next(error);
-  }
-
   if (error.type === 'entity.parse.failed') {
     return res.status(400).json({ error: 'Некорректный JSON в теле запроса' });
   }
 
   const clientMessage = PG_CLIENT_ERRORS[error.code];
-  if (clientMessage) {
-    return res.status(400).json({
-      error: clientMessage,
-      detail: error.message,
-    });
-  }
+  const responseStatus = clientMessage ? 400 : status;
+  const responseMessage = clientMessage || error.message || 'Внутренняя ошибка сервера';
 
-  console.error(error);
-  res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+  res.status(responseStatus).json({
+    error: responseStatus >= 500 && isProd
+      ? 'Внутренняя ошибка сервера'
+      : responseMessage,
+  });
 }

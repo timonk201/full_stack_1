@@ -1,6 +1,6 @@
 # АгроМаркет API
 
-![CI](https://github.com/timonk201/agromarket-server/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/timonk201/full_stack_1/actions/workflows/ci.yml/badge.svg)
 
 REST API на Express с PostgreSQL для каталога товаров и оптовых заявок.
 
@@ -114,3 +114,36 @@ npm run coverage
 - SQL-инъекция предотвращается параметризованными запросами: ввод клиента передаётся как значение, а не конкатенируется с текстом SQL.
 - Объём заказа проверяется и в Express, и ограничением `CHECK (quantity >= 10)` в БД: API даёт понятную ошибку до запроса, а БД остаётся последней защитой для всех клиентов.
 - Ошибки PostgreSQL `22P02`, `23502`, `23503` и `23514` централизованно преобразуются в ответы `400`; детали неожиданных ошибок остаются в серверном журнале.
+
+## Продакшен
+
+После создания сервисов замените адреса-заглушки ниже на фактические URL:
+
+- Сайт: `https://<имя-проекта>.vercel.app`
+- API: `https://<имя-сервиса>.onrender.com/api/health`
+- Схема: React (Vercel) → Express (Render) → PostgreSQL (Neon)
+
+Для монорепозитория укажите `agromarket-server` как Root Directory Render-сервиса, а `agromarket-react` — как Root Directory Vercel-проекта.
+
+### Переменные окружения
+
+| Переменная | Где задаётся | Секрет |
+|---|---|---|
+| `DATABASE_URL` | Render | Да |
+| `JWT_SECRET` | Render | Да |
+| `CORS_ORIGIN` | Render | Нет |
+| `VITE_API_URL` | Vercel | Нет |
+| `RENDER_DEPLOY_HOOK_URL` | GitHub Actions Secrets | Да |
+| `API_URL` | GitHub Actions Variables | Нет |
+| `FRONTEND_URL` | GitHub Actions Variables | Нет |
+
+Render: Build Command — `npm ci --omit=dev`; Start Command — `npm run db:migrate && npm start`; Health Check Path — `/api/health`. Отключите Auto-Deploy, чтобы деплоем управлял GitHub Actions.
+
+### Конвейер деплоя
+
+1. Pull Request запускает backend-тесты и frontend lint/build.
+2. Push в `main` после успешных проверок запускает Render Deploy Hook для проверенного SHA.
+3. Smoke-тест ждёт появления этого SHA в `/api/health`, затем проверяет БД, каталог, запрет создания товара без токена, CORS и ответ `404`.
+4. Vercel собирает frontend из `main`; при аварии выполните rollback на Render и оформите исправление через `git revert` в Pull Request.
+
+После создания облачных сервисов добавьте в GitHub Secret `RENDER_DEPLOY_HOOK_URL` и Variables `API_URL` (URL API вместе с `/api`) и `FRONTEND_URL` (origin сайта без завершающего слэша). Задайте на Render `CORS_ORIGIN` списком разрешённых origin через запятую.
