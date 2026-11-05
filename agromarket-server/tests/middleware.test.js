@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import jwt from 'jsonwebtoken';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { errorHandler } from '../middleware/errorHandler.js';
 
 function mockRes() {
   const response = {};
@@ -59,5 +60,31 @@ describe('requireAuth', () => {
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json.mock.calls[0][0].error).toMatch(/истёк/i);
     expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe('errorHandler', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('скрывает текст ошибки 500 в продакшене', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const res = mockRes();
+    const error = new Error('connect ECONNREFUSED 10.0.0.5:5432');
+
+    errorHandler(error, { method: 'GET', originalUrl: '/x' }, res, vi.fn());
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Внутренняя ошибка сервера' });
+  });
+
+  it('передаёт безопасное сообщение ошибки 400 в продакшене', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const res = mockRes();
+    const error = Object.assign(new Error('Некорректный запрос'), { status: 400 });
+
+    errorHandler(error, { method: 'GET', originalUrl: '/x' }, res, vi.fn());
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Некорректный запрос' });
   });
 });

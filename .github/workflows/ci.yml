@@ -49,3 +49,50 @@ jobs:
         working-directory: agromarket-server
       - run: npm test
         working-directory: agromarket-server
+      - run: npm run db:migrate
+        working-directory: agromarket-server
+
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agromarket-react
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: agromarket-react/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+        env:
+          VITE_API_URL: https://example.invalid/api
+
+  deploy:
+    needs: [test, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Запустить деплой на Render
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "RENDER_DEPLOY_HOOK_URL is not configured" >&2
+            exit 1
+          fi
+          curl -fsS -X POST "${RENDER_DEPLOY_HOOK_URL}&ref=${GITHUB_SHA}"
+      - name: Smoke-тест продакшена
+        run: node scripts/smoke.js
+        working-directory: agromarket-server
+        env:
+          API_URL: ${{ vars.API_URL }}
+          FRONTEND_URL: ${{ vars.FRONTEND_URL }}
+          EXPECTED_VERSION: ${{ github.sha }}
