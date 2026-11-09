@@ -28,7 +28,7 @@ export default function LoginForm({ onLogin }) {
   const isLogin = mode === 'login';
  
   return (
-    <form className="login-form" onSubmit={handleSubmit}>
+    <form className="login-form" aria-label={isLogin ? 'Вход' : 'Регистрация'} onSubmit={handleSubmit}>
       <h3>{isLogin ? 'Вход' : 'Регистрация'}</h3>
  
       {!isLogin && (

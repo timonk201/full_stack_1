@@ -43,7 +43,7 @@ function ContactForm() {
     <section id="contact" className="contact">
       <h2>Оптовая заявка</h2>
 
-      <form className="contact-form" onSubmit={handleSubmit}>
+      <form className="contact-form" aria-label="Оптовая заявка" onSubmit={handleSubmit}>
         <label htmlFor="name">Имя / организация</label>
         <input id="name" name="name" type="text" required />
 
