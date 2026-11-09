@@ -66,6 +66,7 @@ jobs:
           cache-dependency-path: agromarket-react/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - run: npm test
       - run: npm run build
         env:
           VITE_API_URL: https://example.invalid/api
