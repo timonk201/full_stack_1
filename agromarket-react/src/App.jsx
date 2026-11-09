@@ -9,6 +9,8 @@ import { API_URL, apiFetch } from './api.js';
 
 function App() {
   const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [cartCount, setCartCount] = useState(0);
   
@@ -16,10 +18,14 @@ function App() {
     async function loadProducts() {
       try {
         const response = await fetch(`${API_URL}/products`);
+        if (!response.ok) throw new Error(`Ошибка ${response.status}`);
         const data = await response.json();
         setProducts(data);
       } catch (error) {
         console.error('Ошибка при загрузке товаров:', error);
+        setProductsError(true);
+      } finally {
+        setProductsLoading(false);
       }
     }
     loadProducts();
@@ -91,14 +97,22 @@ function App() {
             </div>
 
             <div className="product-grid">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onAdd={handleAddToCart}
-                  featured={product.id === featuredProductId}
-                />
-              ))}
+              {productsLoading ? (
+                <p role="status">Загрузка товаров...</p>
+              ) : productsError ? (
+                <p role="alert">Не удалось загрузить товары.</p>
+              ) : filteredProducts.length > 0 ? (
+                filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAdd={handleAddToCart}
+                    featured={product.id === featuredProductId}
+                  />
+                ))
+              ) : (
+                <p>{products.length ? 'Ничего не найдено.' : 'Товаров пока нет.'}</p>
+              )}
             </div>
           </section>
         </div>
