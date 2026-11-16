@@ -5,7 +5,7 @@ import { errorHandler } from '../middleware/errorHandler.js';
 import { requireRole } from '../middleware/auth.js';
 import authRouter from '../routes/auth.js';
 import { parseOrder, ordersRouter } from '../routes/orders.js';
-import { productsRouter, validateProduct } from '../routes/products.js';
+import { productsRouter } from '../routes/products.js';
 
 test('role middleware rejects other roles and forwards matching roles', () => {
   let statusCode;
@@ -74,10 +74,10 @@ test('oversized JSON bodies return 413', () => {
 
 test('login route applies a rate limiter before its handler', () => {
   const loginRoute = authRouter.stack.find((layer) => layer.route?.path === '/login');
-  assert.equal(loginRoute.route.stack.length, 2);
+  assert.equal(loginRoute.route.stack.length, 3);
 });
 
-test('login rate limiter blocks the sixth failed attempt', async () => {
+test('auth rate limiter blocks attempts after the tenth failed request', async () => {
   const app = express();
   app.use(express.json());
   app.use('/api/auth', authRouter);
@@ -86,7 +86,7 @@ test('login rate limiter blocks the sixth failed attempt', async () => {
   try {
     const { port } = server.address();
     const statuses = [];
-    for (let attempt = 0; attempt < 6; attempt += 1) {
+    for (let attempt = 0; attempt < 11; attempt += 1) {
       const response = await fetch(`http://127.0.0.1:${port}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -96,7 +96,7 @@ test('login rate limiter blocks the sixth failed attempt', async () => {
       await response.arrayBuffer();
     }
 
-    assert.deepEqual(statuses, [400, 400, 400, 400, 400, 429]);
+    assert.deepEqual(statuses, [...Array(10).fill(400), 429]);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
@@ -113,20 +113,9 @@ test('products router exposes the complete CRUD routes', () => {
     { path: '/:id', methods: ['get'] },
     { path: '/', methods: ['post'] },
     { path: '/:id', methods: ['put'] },
+    { path: '/:id', methods: ['patch'] },
     { path: '/:id', methods: ['delete'] },
   ]);
-});
-
-test('product validation accepts a non-negative integer price', () => {
-  assert.equal(validateProduct({ name: 'Мёд', price: 450 }), null);
-  assert.equal(validateProduct({ name: 'Мёд', price: '450' }), null);
-});
-
-test('product validation rejects missing names and invalid prices', () => {
-  assert.equal(validateProduct({ price: 10 }), 'Поле name обязательно');
-  assert.match(validateProduct({ name: 'Мёд', price: -1 }), /price/);
-  assert.match(validateProduct({ name: 'Мёд', price: 1.5 }), /price/);
-  assert.match(validateProduct([]), /JSON-объект/);
 });
 
 test('orders router exposes persistent read, create, and status update routes', () => {
@@ -140,7 +129,7 @@ test('orders router exposes persistent read, create, and status update routes', 
     { path: '/', methods: ['post'] },
     { path: '/:id', methods: ['patch'] },
   ]);
-  assert.deepEqual(ordersRouter.stack.map((layer) => layer.route.stack.length), [3, 1, 3]);
+  assert.deepEqual(ordersRouter.stack.map((layer) => layer.route.stack.length), [3, 1, 4]);
 });
 
 test('order parser accepts the documented API fields', () => {

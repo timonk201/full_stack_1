@@ -29,4 +29,18 @@ describe('apiFetch', () => {
     expect(localStorage.getItem('token')).toBeNull();
     expect(localStorage.getItem('user')).toBeNull();
   });
+
+  test('сохраняет детали серверной валидации в ошибке', async () => {
+    const details = [{ field: 'price', message: 'Цена должна быть больше 0' }];
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: vi.fn().mockResolvedValue({ error: 'Ошибка валидации', details }),
+    });
+
+    await expect(apiFetch('/products')).rejects.toMatchObject({
+      message: 'Ошибка валидации',
+      details,
+    });
+  });
 });

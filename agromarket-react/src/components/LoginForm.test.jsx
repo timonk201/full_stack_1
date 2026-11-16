@@ -58,6 +58,20 @@ describe('LoginForm', () => {
     expect(await screen.findByText('Неверные данные')).toBeInTheDocument();
   });
 
+  test('показывает детали ошибок валидации от API', async () => {
+    const user = userEvent.setup();
+    vi.mocked(apiFetch).mockRejectedValue(Object.assign(new Error('Ошибка валидации'), {
+      details: [{ field: 'email', message: 'Некорректный e-mail' }],
+    }));
+    render(<LoginForm onLogin={vi.fn()} />);
+
+    await user.type(screen.getByLabelText(/email/i), 'farmer@agromarket.kz');
+    await user.type(screen.getByLabelText(/пароль/i), 'secret123');
+    await user.click(screen.getByRole('button', { name: 'Войти' }));
+
+    expect(await screen.findByText('email: Некорректный e-mail')).toBeInTheDocument();
+  });
+
   test('не отправляет некорректный email', async () => {
     const user = userEvent.setup();
     render(<LoginForm onLogin={vi.fn()} />);
