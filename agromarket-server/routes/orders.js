@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { idParam } from '../middleware/idParam.js';
 
 const router = Router();
 const adminOnly = [requireAuth, requireRole('admin')];
@@ -93,7 +94,7 @@ router.post('/', async (req, res) => {
   res.status(201).json(rows[0]);
 });
 
-router.patch('/:id', adminOnly, async (req, res) => {
+router.patch('/:id', idParam, adminOnly, async (req, res) => {
   const { status } = req.body ?? {};
   if (status === undefined || status === null || status === '') {
     return res.status(400).json({ error: 'Поле status обязательно' });

@@ -3,10 +3,12 @@ import { apiFetch } from '../api.js';
  
 export default function AddProductForm({ onAdded }) {
   const [error, setError] = useState('');
+  const [details, setDetails] = useState([]);
  
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setDetails([]);
     const form = e.target;
     const data = Object.fromEntries(new FormData(form));
  
@@ -20,6 +22,7 @@ export default function AddProductForm({ onAdded }) {
       form.reset();
     } catch (err) {
       setError(err.message);
+      setDetails(err.details || []);
     }
   }
   return (
@@ -29,7 +32,16 @@ export default function AddProductForm({ onAdded }) {
       <input name="category" placeholder="Категория" />
       <input name="price" type="number" min="0" placeholder="Цена, ₸" required />
       <input name="unit" placeholder="Единица (кг, л)" defaultValue="кг" />
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
+      {details.length > 0 && (
+        <ul className="error" aria-label="Ошибки валидации">
+          {details.map((detail) => (
+            <li key={`${detail.field}:${detail.message}`}>
+              {detail.field}: {detail.message}
+            </li>
+          ))}
+        </ul>
+      )}
       <button type="submit">Добавить</button>
     </form>
   );
