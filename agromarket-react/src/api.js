@@ -20,7 +20,9 @@ export async function apiFetch(path, options = {}) {
   }
  
   if (!res.ok) {
-    throw new Error(data?.error || `Ошибка ${res.status}`);
+    const error = new Error(data?.error || `Ошибка ${res.status}`);
+    error.details = data?.details || [];
+    throw error;
   }
   return data;
 }

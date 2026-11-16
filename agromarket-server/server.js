@@ -2,8 +2,11 @@ import 'dotenv/config';
 import app from './app.js';
 import { pool } from './db/pool.js';
 
-const required = ['JWT_SECRET', 'CORS_ORIGIN'];
+const required = ['JWT_SECRET'];
 const missing = required.filter((name) => !process.env[name]);
+if (!process.env.CORS_ORIGIN && !process.env.CORS_ORIGINS) {
+  missing.push('CORS_ORIGIN (или CORS_ORIGINS)');
+}
 if (!process.env.DATABASE_URL && !process.env.PGHOST) {
   missing.unshift('DATABASE_URL (или PGHOST)');
 }

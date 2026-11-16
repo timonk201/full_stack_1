@@ -13,13 +13,20 @@ const VERSION = (process.env.RENDER_GIT_COMMIT || 'local').slice(0, 7);
 
 app.set('trust proxy', 1);
 app.use(helmet());
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+const allowedOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || 'http://localhost:5173')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-app.use(cors({ origin: allowedOrigins }));
-app.use(express.json({ limit: '10kb' }));
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
+}));
+app.use(express.json({ limit: '100kb' }));
 
 if (process.env.NODE_ENV !== 'test') {
   app.use(logger);

@@ -1,19 +1,13 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { rateLimit } from 'express-rate-limit';
 import { pool } from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
+import { loginLimiter, registerLimiter } from '../middleware/rateLimit.js';
+import { validate } from '../middleware/validate.js';
+import { loginSchema, registerSchema } from '../validation/schemas.js';
  
 const router = Router();
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 5,
-  skipSuccessfulRequests: true,
-  message: { error: 'Слишком много попыток входа. Попробуйте через 15 минут' },
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-});
  
 // Выпускает токен: внутри id и роль, подпись — нашим секретным ключом
 function createToken(user) {
@@ -25,23 +19,16 @@ function createToken(user) {
 }
  
 // POST /api/auth/register   { name, email, password }
-router.post('/register', async (req, res) => {
-  const { name, email, password } = req.body || {};
- 
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: 'Поля name, email и password обязательны' });
-  }
-  if (String(password).length < 8) {
-    return res.status(400).json({ error: 'Пароль должен быть не короче 8 символов' });
-  }
-const passwordHash = await bcrypt.hash(String(password), 10);
+router.post('/register', registerLimiter, validate(registerSchema), async (req, res) => {
+  const { name, email, password } = req.body;
+  const passwordHash = await bcrypt.hash(password, 10);
  
   // role не передаём — база поставит DEFAULT 'user'
   const { rows } = await pool.query(
     `INSERT INTO users (name, email, password_hash)
      VALUES ($1, $2, $3)
      RETURNING id, name, email, role, created_at`,
-    [String(name).trim(), String(email).trim().toLowerCase(), passwordHash]
+    [name, email, passwordHash]
   );
   const user = rows[0];
  
@@ -49,20 +36,16 @@ const passwordHash = await bcrypt.hash(String(password), 10);
   res.status(201).json({ user, token: createToken(user) });
 });
 
-router.post('/login', loginLimiter, async (req, res) => {
-  const { email, password } = req.body || {};
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Поля email и password обязательны' });
-  }
- 
+router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
+  const { email, password } = req.body;
   const { rows } = await pool.query(
     'SELECT * FROM users WHERE email = $1',
-    [String(email).trim().toLowerCase()]
+    [email]
   );
   const user = rows[0];
  
   // Пользователь найден И пароль совпал с хэшем
-  const ok = user && (await bcrypt.compare(String(password), user.password_hash));
+  const ok = user && (await bcrypt.compare(password, user.password_hash));
   if (!ok) {
     return res.status(401).json({ error: 'Неверный email или пароль' });
   }

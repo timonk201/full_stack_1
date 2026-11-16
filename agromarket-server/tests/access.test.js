@@ -47,6 +47,13 @@ describe('Изменение каталога: только admin', () => {
     expect(updated.status).toBe(200);
     expect(Number(updated.body.price)).toBe(2700);
 
+    const partiallyUpdated = await request(app)
+      .patch(`/api/products/${created.body.id}`)
+      .set('Authorization', authorization)
+      .send({ price: 2800 });
+    expect(partiallyUpdated.status).toBe(200);
+    expect(Number(partiallyUpdated.body.price)).toBe(2800);
+
     const deleted = await request(app)
       .delete(`/api/products/${created.body.id}`)
       .set('Authorization', authorization);
