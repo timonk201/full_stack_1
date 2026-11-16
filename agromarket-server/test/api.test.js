@@ -78,6 +78,8 @@ test('login route applies a rate limiter before its handler', () => {
 });
 
 test('auth rate limiter blocks attempts after the tenth failed request', async () => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'development';
   const app = express();
   app.use(express.json());
   app.use('/api/auth', authRouter);
@@ -99,6 +101,11 @@ test('auth rate limiter blocks attempts after the tenth failed request', async (
     assert.deepEqual(statuses, [...Array(10).fill(400), 429]);
   } finally {
     await new Promise((resolve) => server.close(resolve));
+    if (previousNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = previousNodeEnv;
+    }
   }
 });
 
