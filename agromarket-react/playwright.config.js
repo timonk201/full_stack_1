@@ -9,7 +9,7 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop',
-      testMatch: '**/buyer.spec.js',
+      testMatch: '**/{auth,buyer,catalog}.spec.js',
     },
     {
       name: 'Pixel 7',
@@ -22,5 +22,12 @@ export default defineConfig({
     trace: 'retain-on-failure',  // при падении — «запись» каждого шага
     screenshot: 'only-on-failure',
   },
+  webServer: process.env.E2E_BASE_URL
+    ? undefined
+    : {
+        command: 'npm run dev',
+        url: 'http://localhost:5173',
+        reuseExistingServer: true,
+      },
 });
 
