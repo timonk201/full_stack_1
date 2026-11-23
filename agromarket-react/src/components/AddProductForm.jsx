@@ -26,7 +26,7 @@ export default function AddProductForm({ onAdded }) {
     }
   }
   return (
-    <form className="admin-form" onSubmit={handleSubmit}>
+    <form className="admin-form" aria-label="Новый товар" onSubmit={handleSubmit}>
       <h3>Новый товар</h3>
       <input name="name" placeholder="Название" required />
       <input name="category" placeholder="Категория" />
